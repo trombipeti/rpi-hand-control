@@ -48,13 +48,19 @@ class CvRect:
         new_h = self.h * s
 
         r = CvRect()
-        r.x = center[0] - new_w * 0.5
-        r.y = center[1] - new_h * 0.5
-        r.w = new_w
-        r.h = new_h
+        r.x = int(center[0] - new_w * 0.5)
+        r.y = int(center[1] - new_h * 0.5)
+        r.w = int(new_w)
+        r.h = int(new_h)
         return r
 
     def scale_inside(self, rect, scale):
+
         scaled = self.scaled(scale)
+        # numpy shape-ben fordítva van az x meg az y!
+        scaled.x = int(max( min(scaled.x, rect[1]), 0))
+        scaled.y = int(max( min(scaled.y, rect[0]), 0))
+        scaled.w = int(min(scaled.x + scaled.w, rect[1]))
+        scaled.w = int(min(scaled.y + scaled.h, rect[0]))
 
         return scaled

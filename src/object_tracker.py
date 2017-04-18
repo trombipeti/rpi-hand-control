@@ -43,8 +43,8 @@ def test_object_tracker():
         
             if objs is not None:
                 for obj_rect in objs:
-                    cv2.rectangle(image_roi(frame, mt.motion_roi), obj_rect.tl(), obj_rect.br(), (255, 100, 0), 2)
-            
+                    cv2.rectangle(image_roi(frame, mt.motion_roi), obj_rect.tl(), obj_rect.br(), (100, 255, 0), 2)
+
             cv2.rectangle(frame, mt.motion_roi.tl(), mt.motion_roi.br(), (255, 100, 0), 2)
 
         cv2.imshow("Motion", frame)

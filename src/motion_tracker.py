@@ -120,7 +120,7 @@ class MotionTracker:
                     (roi_expands_current and cur_roi.area() >= self.motion_roi.area() * 0.5) or
                     (not roi_in_current  and cur_roi.area() > self.motion_roi.area())):
 
-                    self.motion_roi = cur_roi.scale_inside(self.motion_image, 1)
+                    self.motion_roi = cur_roi.scale_inside(self.motion_image.shape, 1.2)
 
 
 def test_motion_tracker():
