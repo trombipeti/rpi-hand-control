@@ -24,7 +24,12 @@ class ObjectTracker(MotionTracker):
             self.motion_roi.area() > 0 and
             not self.obj_classifier.empty()):
 
-            objects = self.obj_classifier.detectMultiScale(image_roi(self.prev_frame, self.motion_roi))
+            m_roi = image_roi(self.prev_frame, self.motion_roi)
+
+            try:
+                objects = self.obj_classifier.detectMultiScale(m_roi)
+            except:
+                objects = []
 
             if len(objects) > 0:
                 obj_rects = list()
@@ -68,10 +73,14 @@ def test_object_tracker():
                     is_detected = False
 
                 if is_detected and not prev_detected:
-                    Popen("uxterm")
+                    Popen(["xdg-open", "../data/success-kid.jpg"])
 
                 for obj_rect in objs:
                     cv2.rectangle(image_roi(frame, mt.motion_roi), obj_rect.tl(), obj_rect.br(), (100, 255, 0), 2)
+
+            else:
+                is_detected = False
+                time_of_detect_start = None
 
             cv2.rectangle(frame, mt.motion_roi.tl(), mt.motion_roi.br(), (255, 100, 0), 2)
 
