@@ -30,15 +30,18 @@ def find_largest_contour(bin_image):
 
 class MotionTracker:
 
-    def __init__(self, videosource, filter_alpha = 0.3, motion_threshold = 10):
+    def __init__(self, videosource, filter_alpha = None, motion_threshold = None):
 
         self.accum_motion = None
         self.prev_frame = None
         self.motion_image = None
         self.motion_roi = CvRect((0, 0, 0, 0))
 
-        self.filter_alpha = filter_alpha
-        self.motion_threshold = motion_threshold
+        # Ez azért ilyen furcsán van, hogy a leszármazott osztályokban is lehessen
+        # az alapértelmezett értékeket használni
+        self.filter_alpha = 0.3 if filter_alpha is None else filter_alpha
+        self.motion_threshold = 20 if motion_threshold is None else motion_threshold
+        print(self.filter_alpha, self.motion_threshold)
 
         try:
             self.__vid_cap = cv2.VideoCapture(videosource)
@@ -100,27 +103,28 @@ class MotionTracker:
 
         if self.motion_image is not None:
             cur_roi = self.get_motion_roi()
-            if cv2.countNonZero(self.motion_image) >= cur_roi.area() * 0.005:
+            if cur_roi is not None:
+                if cv2.countNonZero(self.motion_image) >= cur_roi.area() * 0.005:
 
-                _intersection = self.motion_roi.intersect(cur_roi)
+                    _intersection = self.motion_roi.intersect(cur_roi)
 
-                # Az eltárolt roi-n belül van-e a jelenleg megtalált
-                roi_in_current = (_intersection == cur_roi)
+                    # Az eltárolt roi-n belül van-e a jelenleg megtalált
+                    roi_in_current = (_intersection == cur_roi)
 
-                # Van-e közös metszetük, de nincs belül
-                roi_expands_current = (_intersection.area() > 0 and not roi_in_current)
-                
-                # Az előző roi területének 1/X részénél nem nagyobb
-                roi_too_small = (cur_roi.area() <= self.motion_roi.area() * 0.09)
+                    # Van-e közös metszetük, de nincs belül
+                    roi_expands_current = (_intersection.area() > 0 and not roi_in_current)
+                    
+                    # Az előző roi területének 1/X részénél nem nagyobb
+                    roi_too_small = (cur_roi.area() <= self.motion_roi.area() * 0.05)
 
-                # Ha "kicsinyedik" a téglalap, akkor megtartjuk, amennyiben nem túl gyors ez a kicsinyedés
-                # Ha van közös metszet, akkor ha nagyobb az eddigi felénél a jelenlegi ROI, megtartjuk
-                # Ha nincs közös metszet, akkor csak az olyan ROI-t tartjuk meg, ami nagyobb, mint a jelenlegi
-                if ((roi_in_current and not roi_too_small) or
-                    (roi_expands_current and cur_roi.area() >= self.motion_roi.area() * 0.5) or
-                    (not roi_in_current  and cur_roi.area() > self.motion_roi.area())):
+                    # Ha "kicsinyedik" a téglalap, akkor megtartjuk, amennyiben nem túl gyors ez a kicsinyedés
+                    # Ha van közös metszet, akkor ha nagyobb az eddigi 1/x részénél a jelenlegi ROI, megtartjuk
+                    # Ha nincs közös metszet, akkor csak az olyan ROI-t tartjuk meg, ami nagyobb, mint a jelenlegi
+                    if ((roi_in_current and not roi_too_small) or
+                        (roi_expands_current and cur_roi.area() >= self.motion_roi.area() * 0.1) or
+                        (not roi_in_current  and cur_roi.area() > self.motion_roi.area())):
 
-                    self.motion_roi = cur_roi.scale_inside(self.motion_image.shape, 1.2)
+                        self.motion_roi = cur_roi.scale_inside(self.motion_image.shape, 1.1)
 
 
 def test_motion_tracker():
@@ -136,10 +140,10 @@ def test_motion_tracker():
         disp_img = mt.accum_motion.copy()
 
         if motion_rect is not None:
-            cv2.rectangle(frame, motion_rect.tl(), motion_rect.br(), (255, 100, 0), 2)
+            cv2.rectangle(disp_img, motion_rect.tl(), motion_rect.br(), (255, 100, 0), 2)
             pass
 
-        cv2.imshow("Motion", frame)
+        cv2.imshow("Motion", disp_img)
         if cv2.waitKey(1) & 0xFF == 27:
            break
 

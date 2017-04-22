@@ -56,11 +56,14 @@ class CvRect:
 
     def scale_inside(self, rect, scale):
 
+        if scale == 1:
+            return self.scaled(1) # we need to return a deep copy!
+
         scaled = self.scaled(scale)
         # numpy shape-ben fordítva van az x meg az y!
         scaled.x = int(max( min(scaled.x, rect[1]), 0))
         scaled.y = int(max( min(scaled.y, rect[0]), 0))
-        scaled.w = int(min(scaled.x + scaled.w, rect[1]))
-        scaled.w = int(min(scaled.y + scaled.h, rect[0]))
+        scaled.w = int(min(scaled.w, rect[1] - scaled.x))
+        scaled.w = int(min(scaled.h, rect[0] - scaled.y))
 
         return scaled
