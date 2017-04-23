@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 
 import cv2
 import numpy as np
@@ -28,7 +29,7 @@ def find_largest_contour(bin_image):
 
 
 
-class MotionTracker:
+class MotionTracker(object):
 
     def __init__(self, videosource, filter_alpha = None, motion_threshold = None):
 
@@ -151,3 +152,4 @@ def test_motion_tracker():
 
 if __name__ == "__main__":
     test_motion_tracker()
+

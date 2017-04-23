@@ -1,4 +1,5 @@
 #!/usr/other.in/env python
+# -*- encoding: utf-8 -*-
 
 import cv2
 import numpy as np
@@ -60,7 +61,7 @@ class CvRect:
             return self.scaled(1) # we need to return a deep copy!
 
         scaled = self.scaled(scale)
-        # numpy shape-ben fordítva van az x meg az y!
+        # numpy shape-ben forditva van az x meg az y!
         scaled.x = int(max( min(scaled.x, rect[1]), 0))
         scaled.y = int(max( min(scaled.y, rect[0]), 0))
         scaled.w = int(min(scaled.w, rect[1] - scaled.x))
