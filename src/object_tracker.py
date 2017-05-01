@@ -7,6 +7,7 @@ from opencv_rect import CvRect
 from motion_tracker import MotionTracker
 from timeit import default_timer as timer
 from subprocess import Popen
+from PIL import Image
 
 def image_roi(img, roi_CvRect):
     return img[ roi_CvRect.x:roi_CvRect.x + roi_CvRect.w,
@@ -19,7 +20,7 @@ class ObjectTracker(MotionTracker):
 
         self.obj_classifier = cv2.CascadeClassifier(objcet_cascade)
 
-    def detect_object(self):
+    def detectAllObjects(self):
 
         if (self.prev_frame is not None and
             self.motion_roi.area() > 0 and
@@ -48,42 +49,72 @@ def test_object_tracker():
 
     time_of_detect_start = None
     is_detected = False
+    tracker = None
+    obj_rect = None
     for frame in mt.all_input_frames():
 
-        mt.process_frame(frame)
+        if is_detected:
+            if tracker is None:
+                tracker = cv2.Tracker_create("KCF")
+                tracker.init(frame, obj_rect)
+                prev_centers = [ (0, 0), (0, 0), (0, 0), (0, 0), (0, 0),
+                                 (0, 0), (0, 0), (0, 0), (0, 0), (0, 0),
+                                 (0, 0), (0, 0), (0, 0), (0, 0), (0, 0),
+                                 (0, 0), (0, 0), (0, 0), (0, 0), (0, 0),
+                                 (0, 0), (0, 0), (0, 0), (0, 0), (0, 0),]
 
-        if mt.motion_roi is not None:
-            objs = mt.detect_object()
-        
-            if objs is not None:
-                num_objs = len(objs)
+            ok, bbox = tracker.update(frame)
+            rectbbox = CvRect(bbox)
+            prev_centers.pop(0)
+            prev_centers.append(rectbbox.center())
 
-                if num_objs == 1 and time_of_detect_start is None:
-                    time_of_detect_start = timer()
-                    print("Start")
-                elif num_objs != 1:
-                    print("Reset")
-                    time_of_detect_start = None
+            in_frame_area = rectbbox.intersect(CvRect( (0, 0, frame.shape[1], frame.shape[0])) ).area()
 
-                prev_detected = is_detected
-                now_time = timer()
-                if (time_of_detect_start is not None and
-                    (now_time - time_of_detect_start) > 1.5):
-                    is_detected = True
-                elif time_of_detect_start is None:
-                    is_detected = False
+            if ok and in_frame_area >= rectbbox.area():
+                for i in range(1, len(prev_centers)):
+                    cv2.line(frame, prev_centers[i-1], prev_centers[i], (100, 255, 255), 3)
 
-                if is_detected and not prev_detected:
-                    Popen(["xdg-open", "../data/success-kid.jpg"])
-
-                for obj_rect in objs:
-                    cv2.rectangle(image_roi(frame, mt.motion_roi), obj_rect.tl(), obj_rect.br(), (100, 255, 0), 2)
-
+                cv2.rectangle(frame, rectbbox.tl(), rectbbox.br(), (0, 100, 255), 2)
             else:
                 is_detected = False
-                time_of_detect_start = None
 
-            cv2.rectangle(frame, mt.motion_roi.tl(), mt.motion_roi.br(), (255, 100, 0), 2)
+        else:
+            mt.process_frame(frame)
+
+            if mt.motion_roi is not None:
+                objs = mt.detectAllObjects()
+            
+                if objs is not None:
+                    num_objs = len(objs)
+                    sorted_rects = sorted(objs, reverse = True)
+
+                    if num_objs >= 1 and time_of_detect_start is None:
+                        time_of_detect_start = timer()
+                        print("Start {0}".format(num_objs))
+                    elif num_objs == 0:
+                        print("Reset {0}".format(num_objs))
+                        time_of_detect_start = None
+
+                    prev_detected = is_detected
+                    now_time = timer()
+                    if (time_of_detect_start is not None and
+                        (now_time - time_of_detect_start) > 1.5):
+                        is_detected = True
+                    elif time_of_detect_start is None:
+                        is_detected = False
+
+                    if is_detected and not prev_detected:
+                        obj_rect = tuple(sorted_rects[0].shifted(mt.motion_roi.x, mt.motion_roi.y))
+                        # Popen(["xdg-open", "../data/success-kid.jpg"])
+
+                    if num_objs >= 1:
+                        cv2.rectangle(image_roi(frame, mt.motion_roi), sorted_rects[0].tl(), sorted_rects[0].br(), (100, 255, 0), 2)
+
+                else:
+                    is_detected = False
+                    time_of_detect_start = None
+
+                cv2.rectangle(frame, mt.motion_roi.tl(), mt.motion_roi.br(), (255, 100, 0), 2)
 
         cv2.imshow("Motion", frame)
         if cv2.waitKey(1) & 0xFF == 27:

@@ -6,8 +6,12 @@ import numpy as np
 import copy
 
 class CvRect:
+    """ Osztály OpenCV téglalapok kezelésének megkönnyítésére. """
 
     def __init__(self, params_tuple = (0,0,0,0)):
+        """
+        Konstruktor, amely 4 elemű tuple-ből inicializálja az objektumot.
+        """
 
         self.x = params_tuple[0]
         self.y = params_tuple[1]
@@ -18,13 +22,20 @@ class CvRect:
         return "{0},{1} {2},{3}".format(self.x, self.y, self.w, self.h)
 
     def tl(self):
-        return (self.x, self.y)
+        return (int(self.x), int(self.y))
 
     def br(self):
-        return (self.x + self.w, self.y + self.h)
+        return (int(self.x + self.w), int(self.y + self.h))
+
+    def center(self):
+        return (int(self.x + (self.w / 2)),
+                int(self.y + (self.h / 2)))
 
     def area(self):
         return self.w * self.h
+
+    def shifted(self, x, y):
+        return CvRect((self.x + x, self.y + y, self.w, self.h))
 
     def intersect(self, other):
         
@@ -35,6 +46,22 @@ class CvRect:
         if w < 0 or h < 0:
             return CvRect((0, 0, 0, 0))
         return CvRect((x, y, w, h))
+
+    def __lt__(self, other):
+        """ Egyéni összehasonlító függvény, amely azt adja meg, hogy az egyik téglalap területe kisebb-e a másikénál """
+        return self.area() < other.area()
+
+    def __gt__(self, other):
+        """ Egyéni összehasonlító függvény, amely azt adja meg, hogy az egyik téglalap területe kisebb-e a másikénál """
+        return self.area() > other.area()
+
+    def __eq__(self, other):
+        """ Egyéni összehasonlító függvény, amely azt adja meg, hogy az egyik téglalap területe egyenlő-e a másikéval """
+        return self.area() == other.area()
+
+    def __iter__(self):
+        for i in self.x, self.y, self.w, self.h:
+            yield i
 
     def scaled(self, s):
 
