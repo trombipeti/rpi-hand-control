@@ -43,6 +43,10 @@ class ObjectTracker(MotionTracker):
 
 def test_object_tracker():
 
+    tracking_methods = ["BOOSTING", "MIL", "KCF", "TLD", "MEDIANFLOW" ]
+    cur_tracking_method = 0
+
+
     mt = ObjectTracker(0, "../data/fist.xml")
 
     cv2.namedWindow("Motion", cv2.WINDOW_NORMAL)
@@ -51,11 +55,13 @@ def test_object_tracker():
     is_detected = False
     tracker = None
     obj_rect = None
+    last_fps = 0
     for frame in mt.all_input_frames():
 
         if is_detected:
             if tracker is None:
-                tracker = cv2.Tracker_create("KCF")
+                print("Initializing tracker, method: {0}".format(tracking_methods[cur_tracking_method]))
+                tracker = cv2.Tracker_create(tracking_methods[cur_tracking_method])
                 tracker.init(frame, obj_rect)
                 prev_centers = [ (0, 0), (0, 0), (0, 0), (0, 0), (0, 0),
                                  (0, 0), (0, 0), (0, 0), (0, 0), (0, 0),
@@ -63,12 +69,16 @@ def test_object_tracker():
                                  (0, 0), (0, 0), (0, 0), (0, 0), (0, 0),
                                  (0, 0), (0, 0), (0, 0), (0, 0), (0, 0),]
 
-            ok, bbox = tracker.update(frame)
-            rectbbox = CvRect(bbox)
+            ok, obj_rect = tracker.update(frame)
+            rectbbox = CvRect(obj_rect)
             prev_centers.pop(0)
             prev_centers.append(rectbbox.center())
 
             in_frame_area = rectbbox.intersect(CvRect( (0, 0, frame.shape[1], frame.shape[0])) ).area()
+
+            if last_fps != mt.last_fps:
+                print("FPS: {0}".format(mt.last_fps))
+                last_fps = mt.last_fps
 
             if ok and in_frame_area >= rectbbox.area():
                 for i in range(1, len(prev_centers)):
@@ -76,7 +86,11 @@ def test_object_tracker():
 
                 cv2.rectangle(frame, rectbbox.tl(), rectbbox.br(), (0, 100, 255), 2)
             else:
+                print(ok, in_frame_area >= rectbbox.area())
                 is_detected = False
+                tracker = None
+                print("")
+
 
         else:
             mt.process_frame(frame)
@@ -117,8 +131,13 @@ def test_object_tracker():
                 cv2.rectangle(frame, mt.motion_roi.tl(), mt.motion_roi.br(), (255, 100, 0), 2)
 
         cv2.imshow("Motion", frame)
-        if cv2.waitKey(1) & 0xFF == 27:
-           break
+        key = cv2.waitKey(1) & 0xFF
+        
+        if key == 27:
+            break
+        elif key == ord('t'):
+            cur_tracking_method = (cur_tracking_method + 1) % len(tracking_methods)
+            tracker = None
 
     mt.clean_up()
 

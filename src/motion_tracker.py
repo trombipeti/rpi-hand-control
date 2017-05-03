@@ -4,6 +4,7 @@
 import cv2
 import numpy as np
 from opencv_rect import CvRect
+from timeit import default_timer as timer
 
 def find_largest_contour(bin_image):
     """
@@ -44,6 +45,8 @@ class MotionTracker(object):
         self.motion_threshold = 20 if motion_threshold is None else motion_threshold
         print(self.filter_alpha, self.motion_threshold)
 
+        self.last_fps = 0
+
         try:
             self.__vid_cap = cv2.VideoCapture(videosource)
             self.__is_inited = True
@@ -58,9 +61,22 @@ class MotionTracker(object):
             self.__vid_cap.release()
 
     def all_input_frames(self):
+
+        num_frames = 0
+        last_sec_start = None
         while True and self.__vid_cap is not None:
+            if last_sec_start is None:
+                last_sec_start = timer()
+
             ret, frame = self.__vid_cap.read()
             if ret:
+                num_frames += 1
+                time_now = timer()
+                if (time_now - last_sec_start) >= 1.0:
+                    self.last_fps = num_frames
+                    num_frames = 0
+                    last_sec_start = time_now
+
                 yield frame
             else:
                 raise StopIteration
