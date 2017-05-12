@@ -41,7 +41,7 @@ class MotionTracker(object):
 
         # Ez azért ilyen furcsán van, hogy a leszármazott osztályokban is lehessen
         # az alapértelmezett értékeket használni
-        self.filter_alpha = 0.3 if filter_alpha is None else filter_alpha
+        self.filter_alpha = filter_alpha
         self.motion_threshold = 20 if motion_threshold is None else motion_threshold
         print(self.filter_alpha, self.motion_threshold)
 
@@ -68,7 +68,7 @@ class MotionTracker(object):
             if last_sec_start is None:
                 last_sec_start = timer()
 
-            ret, frame = self.__vid_cap.read()
+            ret, frame = self.read_frame()
             if ret:
                 num_frames += 1
                 time_now = timer()
@@ -102,8 +102,10 @@ class MotionTracker(object):
                                                   255,
                                                   cv2.THRESH_BINARY)
 
+            # If filter_alpha is None, we try some adaptive stuff
+            alpha = self.filter_alpha if self.filter_alpha is not None else 0.3 #self.last_fps / 10.0
             # IIR filtering with the set value
-            cv2.accumulateWeighted(self.motion_image, self.accum_motion, self.filter_alpha)
+            cv2.accumulateWeighted(self.motion_image, self.accum_motion, alpha)
 
         self.prev_frame = frame
 

@@ -92,6 +92,6 @@ class CvRect:
         scaled.x = int(max( min(scaled.x, rect[1]), 0))
         scaled.y = int(max( min(scaled.y, rect[0]), 0))
         scaled.w = int(min(scaled.w, rect[1] - scaled.x))
-        scaled.w = int(min(scaled.h, rect[0] - scaled.y))
+        scaled.h = int(min(scaled.h, rect[0] - scaled.y))
 
         return scaled

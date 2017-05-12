@@ -47,7 +47,7 @@ def test_object_tracker():
     cur_tracking_method = 0
 
 
-    mt = ObjectTracker(0, "../data/fist.xml")
+    mt = ObjectTracker(0, "../data/fist.xml", 0.3)
 
     cv2.namedWindow("Motion", cv2.WINDOW_NORMAL)
 
@@ -58,9 +58,13 @@ def test_object_tracker():
     last_fps = 0
     for frame in mt.all_input_frames():
 
+        if last_fps != mt.last_fps:
+                print("FPS: {0}".format(mt.last_fps))
+                last_fps = mt.last_fps
+
         if is_detected:
             if tracker is None:
-                print("Initializing tracker, method: {0}".format(tracking_methods[cur_tracking_method]))
+                print("Initializing tracker, method: {0}, rect: {1}".format(tracking_methods[cur_tracking_method], obj_rect))
                 tracker = cv2.Tracker_create(tracking_methods[cur_tracking_method])
                 tracker.init(frame, obj_rect)
                 prev_centers = [ (0, 0), (0, 0), (0, 0), (0, 0), (0, 0),
@@ -76,9 +80,6 @@ def test_object_tracker():
 
             in_frame_area = rectbbox.intersect(CvRect( (0, 0, frame.shape[1], frame.shape[0])) ).area()
 
-            if last_fps != mt.last_fps:
-                print("FPS: {0}".format(mt.last_fps))
-                last_fps = mt.last_fps
 
             if ok and in_frame_area >= rectbbox.area():
                 for i in range(1, len(prev_centers)):
