@@ -10,8 +10,10 @@ from subprocess import Popen
 from PIL import Image
 
 def image_roi(img, roi_CvRect):
-    return img[ roi_CvRect.x:roi_CvRect.x + roi_CvRect.w,
-                roi_CvRect.y:roi_CvRect.y + roi_CvRect.h]
+    return img[
+                roi_CvRect.y:(roi_CvRect.y + roi_CvRect.h),
+                roi_CvRect.x:(roi_CvRect.x + roi_CvRect.w)
+               ]
 
 class ObjectTracker(MotionTracker):
 
@@ -43,11 +45,11 @@ class ObjectTracker(MotionTracker):
 
 def test_object_tracker():
 
-    tracking_methods = ["BOOSTING", "MIL", "KCF", "TLD", "MEDIANFLOW" ]
+    tracking_methods = ["KCF", "MIL", "BOOSTING", "TLD", "MEDIANFLOW" ]
     cur_tracking_method = 0
 
 
-    mt = ObjectTracker(0, "../data/fist.xml", 0.3)
+    ot = ObjectTracker(0, "../data/fist.xml", 0.3)
 
     cv2.namedWindow("Motion", cv2.WINDOW_NORMAL)
 
@@ -56,11 +58,11 @@ def test_object_tracker():
     tracker = None
     obj_rect = None
     last_fps = 0
-    for frame in mt.all_input_frames():
+    for frame in ot.all_input_frames():
 
-        if last_fps != mt.last_fps:
-                print("FPS: {0}".format(mt.last_fps))
-                last_fps = mt.last_fps
+        if last_fps != ot.last_fps:
+                print("FPS: {0}".format(ot.last_fps))
+                last_fps = ot.last_fps
 
         if is_detected:
             if tracker is None:
@@ -72,8 +74,12 @@ def test_object_tracker():
                                  (0, 0), (0, 0), (0, 0), (0, 0), (0, 0),
                                  (0, 0), (0, 0), (0, 0), (0, 0), (0, 0),
                                  (0, 0), (0, 0), (0, 0), (0, 0), (0, 0),]
+                ok = True
 
-            ok, obj_rect = tracker.update(frame)
+            else:
+                # ok, obj_rect = tracker.update(frame)
+                ok = True
+
             rectbbox = CvRect(obj_rect)
             prev_centers.pop(0)
             prev_centers.append(rectbbox.center())
@@ -94,10 +100,10 @@ def test_object_tracker():
 
 
         else:
-            mt.process_frame(frame)
+            ot.process_frame(frame)
 
-            if mt.motion_roi is not None:
-                objs = mt.detectAllObjects()
+            if ot.motion_roi is not None and ot.motion_roi.area() > 0:
+                objs = ot.detectAllObjects()
             
                 if objs is not None:
                     num_objs = len(objs)
@@ -118,18 +124,23 @@ def test_object_tracker():
                     elif time_of_detect_start is None:
                         is_detected = False
 
+
                     if is_detected and not prev_detected:
-                        obj_rect = tuple(sorted_rects[0].shifted(mt.motion_roi.x, mt.motion_roi.y))
+                        
+                        print(sorted_rects[0], ot.motion_roi, obj_rect)
                         # Popen(["xdg-open", "../data/success-kid.jpg"])
 
                     if num_objs >= 1:
-                        cv2.rectangle(image_roi(frame, mt.motion_roi), sorted_rects[0].tl(), sorted_rects[0].br(), (100, 255, 0), 2)
+                        obj_rect = sorted_rects[0].shifted(ot.motion_roi.x, ot.motion_roi.y)
+                        print(obj_rect)
+                        cv2.rectangle(frame, obj_rect.tl(), obj_rect.br(), (100, 255, 0), 2)
+                        obj_rect = tuple(obj_rect)
 
                 else:
                     is_detected = False
                     time_of_detect_start = None
 
-                cv2.rectangle(frame, mt.motion_roi.tl(), mt.motion_roi.br(), (255, 100, 0), 2)
+                cv2.rectangle(frame, ot.motion_roi.tl(), ot.motion_roi.br(), (255, 100, 0), 2)
 
         cv2.imshow("Motion", frame)
         key = cv2.waitKey(1) & 0xFF
@@ -140,7 +151,7 @@ def test_object_tracker():
             cur_tracking_method = (cur_tracking_method + 1) % len(tracking_methods)
             tracker = None
 
-    mt.clean_up()
+    ot.clean_up()
 
 if __name__ == "__main__":
     test_object_tracker()
