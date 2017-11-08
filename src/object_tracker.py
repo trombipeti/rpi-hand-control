@@ -5,9 +5,10 @@ import cv2
 import numpy as np
 from opencv_rect import CvRect
 from motion_tracker import MotionTracker
+from stroke import *
 from timeit import default_timer as timer
 from subprocess import Popen
-from PIL import Image
+import math
 
 def image_roi(img, roi_CvRect):
     return img[
@@ -45,11 +46,17 @@ class ObjectTracker(MotionTracker):
 
 def test_object_tracker():
 
-    tracking_methods = ["KCF", "MIL", "BOOSTING", "TLD", "MEDIANFLOW" ]
+    tracking_methods = {
+                        0 : "KCF", #: "cv2.TrackerKCF_create",
+                        1 : "MIL", #: "cv2.TrackerMIL_create",
+                        2 : "BOOSTING", #: "cv2.TrackerBOOSTING_create",
+                        3 : "TLD", #: "cv2.TrackerTLD_create",
+                        4 : "MEDIANFLOW", #: "cv2.TrackerMEDIANFLOW_create"
+                        }
     cur_tracking_method = 0
 
 
-    ot = ObjectTracker(0, "../data/fist.xml", 0.3)
+    ot = ObjectTracker(0, "../data/jordan-hands-LBP-32x48-20171107.xml", 0.3)
 
     cv2.namedWindow("Motion", cv2.WINDOW_NORMAL)
 
@@ -67,36 +74,38 @@ def test_object_tracker():
         if is_detected:
             if tracker is None:
                 print("Initializing tracker, method: {0}, rect: {1}".format(tracking_methods[cur_tracking_method], obj_rect))
-                tracker = cv2.Tracker_create(tracking_methods[cur_tracking_method])
+                tracker = cv2.TrackerKCF_create()
                 tracker.init(frame, obj_rect)
-                prev_centers = [ (0, 0), (0, 0), (0, 0), (0, 0), (0, 0),
-                                 (0, 0), (0, 0), (0, 0), (0, 0), (0, 0),
-                                 (0, 0), (0, 0), (0, 0), (0, 0), (0, 0),
-                                 (0, 0), (0, 0), (0, 0), (0, 0), (0, 0),
-                                 (0, 0), (0, 0), (0, 0), (0, 0), (0, 0),]
+                cur_stroke = Stroke()
+                center = CvRect(obj_rect).center()
+                cur_stroke.add_point(center[0], center[1])
+
                 ok = True
 
             else:
-                # ok, obj_rect = tracker.update(frame)
-                ok = True
+                ok, obj_rect = tracker.update(frame)
 
             rectbbox = CvRect(obj_rect)
-            prev_centers.pop(0)
-            prev_centers.append(rectbbox.center())
+            cur_timer = timer()
+            if len(cur_stroke.points) > 100:
+                cur_stroke.points.pop(0)
+                # cur_stroke.finish()
+            cur_stroke.add_point(rectbbox.center()[0], rectbbox.center()[1])
 
             in_frame_area = rectbbox.intersect(CvRect( (0, 0, frame.shape[1], frame.shape[0])) ).area()
 
 
             if ok and in_frame_area >= rectbbox.area():
-                for i in range(1, len(prev_centers)):
-                    cv2.line(frame, prev_centers[i-1], prev_centers[i], (100, 255, 255), 3)
+                for i in range(1, len(cur_stroke.points)):
+                    a = (cur_stroke.points[i-1].x - cur_stroke.points[i].x, cur_stroke.points[i-1].y - cur_stroke.points[i].y)
+                    a = math.sqrt(a[0] * a[0] + a[1] * a[1])
+                    cv2.line(frame, (int(cur_stroke.points[i-1].x), int(cur_stroke.points[i-1].y)),
+                                    (int(cur_stroke.points[i].x), int(cur_stroke.points[i].y)), (int(a * 5) % 255, 0, int(a * 5) % 255), 3)
 
                 cv2.rectangle(frame, rectbbox.tl(), rectbbox.br(), (0, 100, 255), 2)
             else:
-                print(ok, in_frame_area >= rectbbox.area())
                 is_detected = False
                 tracker = None
-                print("")
 
 
         else:
@@ -119,20 +128,18 @@ def test_object_tracker():
                     prev_detected = is_detected
                     now_time = timer()
                     if (time_of_detect_start is not None and
-                        (now_time - time_of_detect_start) > 1.5):
+                        (now_time - time_of_detect_start) > 0.5):
                         is_detected = True
                     elif time_of_detect_start is None:
                         is_detected = False
 
 
                     if is_detected and not prev_detected:
-                        
-                        print(sorted_rects[0], ot.motion_roi, obj_rect)
+                        pass
                         # Popen(["xdg-open", "../data/success-kid.jpg"])
 
                     if num_objs >= 1:
                         obj_rect = sorted_rects[0].shifted(ot.motion_roi.x, ot.motion_roi.y)
-                        print(obj_rect)
                         cv2.rectangle(frame, obj_rect.tl(), obj_rect.br(), (100, 255, 0), 2)
                         obj_rect = tuple(obj_rect)
 

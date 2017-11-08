@@ -23,7 +23,9 @@ def find_largest_contour(bin_image):
     max_contour_area = 0
     for i in range(len(all_contours)):
         if len(all_contours[i]) > 0:
-            if cv2.contourArea(all_contours[i]) > max_contour_area:
+            cur_area = cv2.contourArea(all_contours[i])
+            if cur_area > max_contour_area:
+                max_contour_area = cur_area
                 max_contour_index = i
 
     return all_contours[max_contour_index] if max_contour_index >= 0 else None
@@ -42,7 +44,7 @@ class MotionTracker(object):
         # Ez azért ilyen furcsán van, hogy a leszármazott osztályokban is lehessen
         # az alapértelmezett értékeket használni
         self.filter_alpha = filter_alpha
-        self.motion_threshold = 20 if motion_threshold is None else motion_threshold
+        self.motion_threshold = 10 if motion_threshold is None else motion_threshold
         print(self.filter_alpha, self.motion_threshold)
 
         self.last_fps = 0
@@ -131,18 +133,22 @@ class MotionTracker(object):
                     roi_in_current = (_intersection == cur_roi)
 
                     # Van-e közös metszetük, de nincs belül
-                    roi_expands_current = (_intersection.area() > 0 and not roi_in_current)
+                    roi_expands_current = (_intersection.area() > cur_roi.area() * 0.005 and not roi_in_current)
                     
                     # Az előző roi területének 1/X részénél nem nagyobb
-                    roi_too_small = (cur_roi.area() <= self.motion_roi.area() * 0.05)
+                    roi_too_small = (cur_roi.h <= self.motion_roi.h * 0.7)
+
+                    if roi_in_current:
+                        print("Inside")
+                        print(cur_roi.h, self.motion_roi.h)
 
                     # Ha "kicsinyedik" a téglalap, akkor megtartjuk, amennyiben nem túl gyors ez a kicsinyedés
                     # Ha van közös metszet, akkor ha nagyobb az eddigi 1/x részénél a jelenlegi ROI, megtartjuk
                     # Ha nincs közös metszet, akkor csak az olyan ROI-t tartjuk meg, ami nagyobb, mint a jelenlegi
                     if ((roi_in_current and not roi_too_small) or
-                        (roi_expands_current and cur_roi.area() >= self.motion_roi.area() * 0.1) or
+                        (roi_expands_current and cur_roi.area() >= self.motion_roi.area() * 0.2) or
                         (not roi_in_current  and cur_roi.area() > self.motion_roi.area())):
-
+    
                         self.motion_roi = cur_roi.scale_inside(self.motion_image.shape, 1.1)
 
 
@@ -156,7 +162,7 @@ def test_motion_tracker():
         mt.process_frame(frame)
         motion_rect = mt.motion_roi
 
-        disp_img = mt.accum_motion.copy()
+        disp_img = cv2.cvtColor(mt.accum_motion, cv2.COLOR_GRAY2BGR)
 
         if motion_rect is not None:
             cv2.rectangle(disp_img, motion_rect.tl(), motion_rect.br(), (255, 100, 0), 2)

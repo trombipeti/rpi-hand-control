@@ -1,4 +1,4 @@
-#!/usr/other.in/env python
+#!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
 import cv2
