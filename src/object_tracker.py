@@ -47,11 +47,14 @@ class ObjectTracker(MotionTracker):
 def test_object_tracker():
 
     tracking_methods = {
+                        0 : cv2.TrackerKCF_create,
+                        1 : cv2.TrackerMIL_create,
+                        2 : cv2.TrackerTLD_create,
+                        }
+    tracking_method_names = {
                         0 : "KCF", #: "cv2.TrackerKCF_create",
                         1 : "MIL", #: "cv2.TrackerMIL_create",
-                        2 : "BOOSTING", #: "cv2.TrackerBOOSTING_create",
-                        3 : "TLD", #: "cv2.TrackerTLD_create",
-                        4 : "MEDIANFLOW", #: "cv2.TrackerMEDIANFLOW_create"
+                        2 : "TLD", #: "cv2.TrackerTLD_create",
                         }
     cur_tracking_method = 0
 
@@ -64,17 +67,19 @@ def test_object_tracker():
     is_detected = False
     tracker = None
     obj_rect = None
+    cur_obj_rect_size = CvRect()
     last_fps = 0
+    framecounter = 0
     for frame in ot.all_input_frames():
-
+        framecounter += 1
         if last_fps != ot.last_fps:
-                print("FPS: {0}".format(ot.last_fps))
+                print("{0}; {1}; {2}".format(framecounter, ot.last_fps, int(cur_obj_rect_size.w * cur_obj_rect_size.h)))
                 last_fps = ot.last_fps
 
         if is_detected:
             if tracker is None:
-                print("Initializing tracker, method: {0}, rect: {1}".format(tracking_methods[cur_tracking_method], obj_rect))
-                tracker = cv2.TrackerKCF_create()
+                print("{0}; {1}; {2}; REINIT".format(framecounter, ot.last_fps, int(cur_obj_rect_size.w * cur_obj_rect_size.h)))
+                tracker = tracking_methods[cur_tracking_method]()
                 tracker.init(frame, obj_rect)
                 cur_stroke = Stroke()
                 center = CvRect(obj_rect).center()
@@ -103,6 +108,11 @@ def test_object_tracker():
                                     (int(cur_stroke.points[i].x), int(cur_stroke.points[i].y)), (int(a * 5) % 255, 0, int(a * 5) % 255), 3)
 
                 cv2.rectangle(frame, rectbbox.tl(), rectbbox.br(), (0, 100, 255), 2)
+
+                if rectbbox.area() != cur_obj_rect_size.area():
+                    cur_obj_rect_size = rectbbox
+                    print("{0}; {1}; {2}".format(framecounter, ot.last_fps, int(cur_obj_rect_size.w * cur_obj_rect_size.h)))
+
             else:
                 is_detected = False
                 tracker = None
@@ -120,9 +130,7 @@ def test_object_tracker():
 
                     if num_objs >= 1 and time_of_detect_start is None:
                         time_of_detect_start = timer()
-                        print("Start {0}".format(num_objs))
                     elif num_objs == 0:
-                        print("Reset {0}".format(num_objs))
                         time_of_detect_start = None
 
                     prev_detected = is_detected

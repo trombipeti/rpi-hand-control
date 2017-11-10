@@ -138,10 +138,6 @@ class MotionTracker(object):
                     # Az előző roi területének 1/X részénél nem nagyobb
                     roi_too_small = (cur_roi.h <= self.motion_roi.h * 0.7)
 
-                    if roi_in_current:
-                        print("Inside")
-                        print(cur_roi.h, self.motion_roi.h)
-
                     # Ha "kicsinyedik" a téglalap, akkor megtartjuk, amennyiben nem túl gyors ez a kicsinyedés
                     # Ha van közös metszet, akkor ha nagyobb az eddigi 1/x részénél a jelenlegi ROI, megtartjuk
                     # Ha nincs közös metszet, akkor csak az olyan ROI-t tartjuk meg, ami nagyobb, mint a jelenlegi
