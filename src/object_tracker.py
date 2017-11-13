@@ -10,6 +10,8 @@ from timeit import default_timer as timer
 from subprocess import Popen
 import math
 
+
+
 def image_roi(img, roi_CvRect):
     return img[
                 roi_CvRect.y:(roi_CvRect.y + roi_CvRect.h),
@@ -17,6 +19,8 @@ def image_roi(img, roi_CvRect):
                ]
 
 class ObjectTracker(MotionTracker):
+
+    (cv2_major, cv2_minor, cv2_build) = (int(v) for v in cv2.__version__.split('.'))
 
     def __init__(self, videosource, objcet_cascade, filter_alpha = None, motion_threshold = None):
         super(ObjectTracker, self).__init__(videosource, filter_alpha, motion_threshold)
@@ -44,18 +48,24 @@ class ObjectTracker(MotionTracker):
                 return obj_rects
             return None
 
+    trackingMethods = ["KCF", "MIL", "TLD"]
+
+
+    @staticmethod
+    def createCVTracker(method):
+        if method not in ObjectTracker.trackingMethods:
+            raise ValueError("Method must be one of".join(m for m in ObjectTracker.trackingMethods))
+        print(method)
+        if ObjectTracker.cv2_major >= 3 and ObjectTracker.cv2_minor >= 2:
+            return {"KCF": cv2.TrackerKCF_create,
+                    "MIL": cv2.TrackerMIL_create,
+                    "TLD": cv2.TrackerTLD_create}[method]()
+        else:
+            return cv2.Tracker_create(method)
+
+
 def test_object_tracker():
 
-    tracking_methods = {
-                        0 : cv2.TrackerKCF_create,
-                        1 : cv2.TrackerMIL_create,
-                        2 : cv2.TrackerTLD_create,
-                        }
-    tracking_method_names = {
-                        0 : "KCF", #: "cv2.TrackerKCF_create",
-                        1 : "MIL", #: "cv2.TrackerMIL_create",
-                        2 : "TLD", #: "cv2.TrackerTLD_create",
-                        }
     cur_tracking_method = 0
 
 
@@ -79,7 +89,7 @@ def test_object_tracker():
         if is_detected:
             if tracker is None:
                 print("{0}; {1}; {2}; REINIT".format(framecounter, ot.last_fps, int(cur_obj_rect_size.w * cur_obj_rect_size.h)))
-                tracker = tracking_methods[cur_tracking_method]()
+                tracker = ObjectTracker.createCVTracker(ObjectTracker.trackingMethods[cur_tracking_method])
                 tracker.init(frame, obj_rect)
                 cur_stroke = Stroke()
                 center = CvRect(obj_rect).center()
@@ -163,7 +173,7 @@ def test_object_tracker():
         if key == 27:
             break
         elif key == ord('t'):
-            cur_tracking_method = (cur_tracking_method + 1) % len(tracking_methods)
+            cur_tracking_method = (cur_tracking_method + 1) % len(ObjectTracker.trackingMethods)
             tracker = None
 
     ot.clean_up()

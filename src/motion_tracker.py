@@ -45,7 +45,6 @@ class MotionTracker(object):
         # az alapértelmezett értékeket használni
         self.filter_alpha = filter_alpha
         self.motion_threshold = 10 if motion_threshold is None else motion_threshold
-        print(self.filter_alpha, self.motion_threshold)
 
         self.last_fps = 0
 
