@@ -69,7 +69,9 @@ def test_object_tracker():
     cur_tracking_method = 0
 
 
-    ot = ObjectTracker(0, "../data/jordan-hands-LBP-32x48-20171107.xml", 0.3)
+#     ot = ObjectTracker(0, "../data/jordan-hands-LBP-24x32-201711071511", 0.3)
+#     ot = ObjectTracker(0, "../data/jordan-hands-LBP-32x48-20171107.xml", 0.3)
+    ot = ObjectTracker(0, "../data/fist.xml", 0.3)
 
     cv2.namedWindow("Motion", cv2.WINDOW_NORMAL)
 
@@ -81,6 +83,9 @@ def test_object_tracker():
     last_fps = 0
     framecounter = 0
     for frame in ot.all_input_frames():
+
+        frame = cv2.resize(frame, None, fx = 0.5, fy = 0.5)
+
         framecounter += 1
         if last_fps != ot.last_fps:
                 print("{0}; {1}; {2}".format(framecounter, ot.last_fps, int(cur_obj_rect_size.w * cur_obj_rect_size.h)))
@@ -102,15 +107,15 @@ def test_object_tracker():
 
             rectbbox = CvRect(obj_rect)
             cur_timer = timer()
-            if len(cur_stroke.points) > 100:
-                cur_stroke.points.pop(0)
-                # cur_stroke.finish()
-            cur_stroke.add_point(rectbbox.center()[0], rectbbox.center()[1])
 
             in_frame_area = rectbbox.intersect(CvRect( (0, 0, frame.shape[1], frame.shape[0])) ).area()
 
 
             if ok and in_frame_area >= rectbbox.area():
+                if len(cur_stroke.points) > 100:
+                    cur_stroke.points.pop(0)
+                    # cur_stroke.finish()
+                cur_stroke.add_point(rectbbox.center()[0], rectbbox.center()[1])
                 for i in range(1, len(cur_stroke.points)):
                     a = (cur_stroke.points[i-1].x - cur_stroke.points[i].x, cur_stroke.points[i-1].y - cur_stroke.points[i].y)
                     a = math.sqrt(a[0] * a[0] + a[1] * a[1])
