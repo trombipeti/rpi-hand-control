@@ -9,6 +9,9 @@ from stroke import *
 from timeit import default_timer as timer
 from subprocess import Popen
 import math
+import sys
+
+assert sys.version_info.major >= 3, "Please use Python3, as Python2 does some very funny sh*it."
 
 def image_roi(img, roi_CvRect):
     return img[
@@ -235,6 +238,8 @@ def test_object_tracker():
                     winname = "Match, score: {0}".format(min(scores))
                     cv2.namedWindow(winname, cv2.WINDOW_NORMAL)
                     cv2.imshow(winname, matchimg)
+                    if scores.index(min.scores) == 0:
+                        pass
 
 
 
