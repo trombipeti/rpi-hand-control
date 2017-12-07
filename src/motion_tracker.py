@@ -175,10 +175,10 @@ def test_motion_tracker():
         if key == 27:
             break
         elif key == ord('p'):
-            timetxt = datetime.now().strftime("%Y%m%d_%H%M%S")
-            fn = "motion_tracker_t{0}_a{1:.2f}_{2}.pgm".format(mt.motion_threshold, mt.filter_alpha, timetxt)
-            cv2.imwrite(fn, disp_img * 255)
-            cv2.waitKey(-1)
+            if cv2.waitKey(-1) & 0xFF == ord('p'):
+                timetxt = datetime.now().strftime("%Y%m%d_%H%M%S")
+                fn = "motion_tracker_t{0}_a{1:.2f}_{2}.png".format(mt.motion_threshold, mt.filter_alpha, timetxt)
+                cv2.imwrite(fn, disp_img * 255)
         elif key == ord('w'):
             mt.motion_threshold += 5 if mt.motion_threshold <= 250 else 0
         elif key == ord('s'):
