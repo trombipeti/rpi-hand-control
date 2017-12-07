@@ -40,7 +40,7 @@ class MotionTracker(object):
         self.accum_motion = None
         self.prev_frame = None
         self.motion_image = None
-        self.motion_roi = CvRect((0, 0, 0, 0))
+        self.motion_roi = None
 
         # Ez azért ilyen furcsán van, hogy a leszármazott osztályokban is lehessen
         # az alapértelmezett értékeket használni
@@ -129,7 +129,8 @@ class MotionTracker(object):
             cur_roi = self.get_unfiltered_motion_roi()
             if cur_roi is not None:
                 if cv2.countNonZero(self.motion_image) >= cur_roi.area() * 0.005:
-
+                    if self.motion_roi is None:
+                        self.motion_roi = CvRect((0, 0, 0, 0))
                     _intersection = self.motion_roi.intersect(cur_roi)
 
                     # Az eltárolt roi-n belül van-e a jelenleg megtalált

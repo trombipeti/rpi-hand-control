@@ -45,7 +45,8 @@ class Stroke:
         for i in range(0, len(self.points) - 1):
             total += math.hypot(self.points[i + 1].x - self.points[i].x, self.points[i + 1].y - self.points[i].y)
             self.points[i + 1].t = total
-
+        if total == 0.0:
+            total = 1.0
         for i in range(1, len(self.points)):
             self.points[i].t /= total
 
