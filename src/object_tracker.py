@@ -10,6 +10,7 @@ from timeit import default_timer as timer
 from subprocess import Popen
 import math
 import sys
+import webbrowser
 
 assert sys.version_info.major >= 3, "Please use Python3, as Python2 does some very funny sh*it."
 
@@ -238,10 +239,8 @@ def test_object_tracker():
                     winname = "Match, score: {0}".format(min(scores))
                     cv2.namedWindow(winname, cv2.WINDOW_NORMAL)
                     cv2.imshow(winname, matchimg)
-                    if scores.index(min.scores) == 0:
-                        pass
-
-
+                    if scores.index(min(scores)) == 0:
+                        webbrowser.open("https://www.youtube.com/watch?v=KrZHPOeOxQQ")
 
 
         cv2.putText(frame, ObjectTracker.StatusNames[ot.status], (20, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.7, (0, 255, 0), 1, cv2.LINE_AA)
