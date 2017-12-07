@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 from opencv_rect import CvRect
 from timeit import default_timer as timer
+from datetime import datetime
 
 def find_largest_contour(bin_image):
     """
@@ -172,7 +173,12 @@ def test_motion_tracker():
         cv2.imshow("Motion", disp_img)
         key = cv2.waitKey(1) & 0xFF
         if key == 27:
-           break
+            break
+        elif key == ord('p'):
+            timetxt = datetime.now().strftime("%Y%m%d_%H%M%S")
+            fn = "motion_tracker_t{0}_a{1:.2f}_{2}.pgm".format(mt.motion_threshold, mt.filter_alpha, timetxt)
+            cv2.imwrite(fn, disp_img * 255)
+            cv2.waitKey(-1)
         elif key == ord('w'):
             mt.motion_threshold += 5 if mt.motion_threshold <= 250 else 0
         elif key == ord('s'):
@@ -182,7 +188,7 @@ def test_motion_tracker():
         elif key == ord('d'):
             mt.filter_alpha -= 0.05 if mt.filter_alpha > 0.06 else 0
         elif key == 32:
-            cv2.waitKey(-1)
+            newkey = cv2.waitKey(-1) & 0xFF
 
     mt.clean_up()
 
