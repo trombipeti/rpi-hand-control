@@ -88,21 +88,21 @@ class MotionTracker(object):
     def process_frame(self, frame):
 
         bw_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        self.__update_motion_images(bw_frame)
+        self.__update_motion_images(frame)
         self.__update_motion_roi()
 
     def __update_motion_images(self, frame):
 
         if self.accum_motion is None:
-            self.accum_motion = np.zeros(frame.shape, np.float32)
+            self.accum_motion = np.zeros((frame.shape[0], frame.shape[1], 1), np.float32)
 
         if self.prev_frame is not None:
             # Threshold the difference image with the set value. Note: first return value - the '_' - is rubbish here
-            _, self.motion_image = cv2.threshold( cv2.absdiff(frame, self.prev_frame),
+            _, motion_thresh_img = cv2.threshold( cv2.absdiff(frame, self.prev_frame),
                                                   self.motion_threshold,
                                                   255,
                                                   cv2.THRESH_BINARY)
-
+            self.motion_image = cv2.cvtColor(motion_thresh_img, cv2.COLOR_BGR2GRAY)
             # If filter_alpha is None, we try some adaptive stuff
             alpha = self.filter_alpha if self.filter_alpha is not None else 0.3 #self.last_fps / 10.0
             # IIR filtering with the set value
@@ -110,7 +110,7 @@ class MotionTracker(object):
 
         self.prev_frame = frame
 
-    def get_motion_roi(self):
+    def get_unfiltered_motion_roi(self):
 
         accum_copy = np.uint8(self.accum_motion)
         largest_contour = find_largest_contour(accum_copy)
@@ -119,10 +119,13 @@ class MotionTracker(object):
 
         return None
 
+    def get_motion_roi(self):
+        return self.motion_roi
+
     def __update_motion_roi(self):
 
         if self.motion_image is not None:
-            cur_roi = self.get_motion_roi()
+            cur_roi = self.get_unfiltered_motion_roi()
             if cur_roi is not None:
                 if cv2.countNonZero(self.motion_image) >= cur_roi.area() * 0.005:
 
@@ -149,13 +152,13 @@ class MotionTracker(object):
 
 def test_motion_tracker():
 
-    mt = MotionTracker(0)
+    mt = MotionTracker(0, 0.3, 30)
 
     cv2.namedWindow("Motion", cv2.WINDOW_NORMAL)
     for frame in mt.all_input_frames():
 
         mt.process_frame(frame)
-        motion_rect = mt.motion_roi
+        motion_rect = mt.get_motion_roi()
 
         disp_img = cv2.cvtColor(mt.accum_motion, cv2.COLOR_GRAY2BGR)
 
@@ -163,9 +166,23 @@ def test_motion_tracker():
             cv2.rectangle(disp_img, motion_rect.tl(), motion_rect.br(), (255, 100, 0), 2)
             pass
 
+        txt = "T {0}, a {1:.2f}".format(mt.motion_threshold, mt.filter_alpha)
+        cv2.putText(disp_img, txt, (20, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.7, (0, 255, 0), 1, cv2.LINE_AA)
+
         cv2.imshow("Motion", disp_img)
-        if cv2.waitKey(1) & 0xFF == 27:
+        key = cv2.waitKey(1) & 0xFF
+        if key == 27:
            break
+        elif key == ord('w'):
+            mt.motion_threshold += 5 if mt.motion_threshold <= 250 else 0
+        elif key == ord('s'):
+            mt.motion_threshold -= 5 if mt.motion_threshold >= 5 else 0
+        elif key == ord('e'):
+            mt.filter_alpha += 0.05 if mt.filter_alpha < 0.96 else 0
+        elif key == ord('d'):
+            mt.filter_alpha -= 0.05 if mt.filter_alpha > 0.06 else 0
+        elif key == 32:
+            cv2.waitKey(-1)
 
     mt.clean_up()
 

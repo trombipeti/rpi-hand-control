@@ -172,7 +172,7 @@ def __test_stroke():
 
     o = Stroke()
     o.add_point(0, 0)
-    o.add_point(6, 5)
+    o.add_point(4, 0)
     o.finish()
 
     c = s.compare(o)

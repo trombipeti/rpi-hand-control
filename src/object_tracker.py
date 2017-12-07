@@ -69,9 +69,9 @@ def test_object_tracker():
     cur_tracking_method = 0
 
 
-#     ot = ObjectTracker(0, "../data/jordan-hands-LBP-24x32-201711071511", 0.3)
-#     ot = ObjectTracker(0, "../data/jordan-hands-LBP-32x48-20171107.xml", 0.3)
-    ot = ObjectTracker(0, "../data/fist.xml", 0.3)
+#    ot = ObjectTracker(0, "../data/jordan-hands-LBP-24x32-201711071511", 0.3)
+    ot = ObjectTracker(0, "../data/jordan-hands-LBP-32x48-20171107.xml", 0.3, 30)
+#    ot = ObjectTracker(0, "../data/fist.xml", 0.3)
 
     cv2.namedWindow("Motion", cv2.WINDOW_NORMAL)
 
@@ -134,7 +134,7 @@ def test_object_tracker():
 
 
         else:
-            ot.process_frame(frame)
+            ot.process_frame(frame.copy())
 
             if ot.motion_roi is not None and ot.motion_roi.area() > 0:
                 objs = ot.detectAllObjects()
