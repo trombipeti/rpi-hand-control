@@ -15,6 +15,8 @@ import webbrowser
 assert sys.version_info.major >= 3, "Please use Python3, as Python2 does some very funny sh*it."
 
 def image_roi(img, roi_CvRect):
+    if roi_CvRect is None:
+        return img
     return img[
                 roi_CvRect.y:(roi_CvRect.y + roi_CvRect.h),
                 roi_CvRect.x:(roi_CvRect.x + roi_CvRect.w)
@@ -59,12 +61,15 @@ class ObjectTracker:
             return timer() - self.time_of_detect_start > self.get_min_detect_time()
 
     def process_frame(self, full_frame, roi = None):
-        if roi is None:
-            roi = CvRect((0, 0, full_frame.shape[0], full_frame.shape[1]))
+
         if self.status < self.STATUS_TRACKING:
             self.hand_position = self.detect_largest_object(image_roi(full_frame, roi), self.status == self.STATUS_FIST_SEARCH)
 
+            if roi is not None and self.hand_position is not None:
+                self.hand_position = self.hand_position.shifted(roi.x, roi.y)
+
             if self.update_detect_timer(self.hand_position is None):
+                print("Next state, hand pos: {0}".format(self.hand_position))
                 self.status += 1
 
         elif self.status == self.STATUS_TRACKING:
@@ -77,6 +82,7 @@ class ObjectTracker:
                 hp = self.hand_position
                 if roi is not None:
                     hp = hp.shifted(roi.x, roi.y)
+                print("Initing from {0}, roi: {1}".format(hp, roi))
                 self.tracker.init(full_frame, tuple(hp))
             else:
                 ok, r = self.tracker.update(full_frame)
@@ -240,13 +246,13 @@ def test_object_tracker():
                     cv2.namedWindow(winname, cv2.WINDOW_NORMAL)
                     cv2.imshow(winname, matchimg)
                     if scores.index(min(scores)) == 0:
-                        webbrowser.open("https://www.youtube.com/watch?v=KrZHPOeOxQQ")
+                        # webbrowser.open("https://www.youtube.com/watch?v=KrZHPOeOxQQ")
+                        print("BonJovi...")
 
 
         cv2.putText(frame, ObjectTracker.StatusNames[ot.status], (20, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.7, (0, 255, 0), 1, cv2.LINE_AA)
         draw_hand_pos = ot.hand_position
         if mt.motion_roi is not None:
-            draw_hand_pos = draw_hand_pos if draw_hand_pos is None else draw_hand_pos.shifted(mt.motion_roi.x, mt.motion_roi.y)
             cv2.rectangle(frame, mt.motion_roi.tl(), mt.motion_roi.br(), (255, 100, 0), 2)
 
         if draw_hand_pos is not None:
